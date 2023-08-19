@@ -41,9 +41,10 @@ HWND ghWnd,hStatusWnd;
 HBRUSH hBrush,hBrush2;
 HPEN hPen1,hPen2;
 HFONT hFont,hFont2,hFont3,hTitleFont;
-DWORD playTime;		// conto cmq il tempo giocato :)
-BYTE currQuadro;
-int score[2],hiScore,totShips[2],credit;
+DWORD playTime;		// conto cmq il tempo giocato :) per ciascun player??
+BYTE currQuadro[2];
+int score[2],hiScore;
+BYTE totShips[2],credit,player,totPlayers;
 BYTE maxBombeNow;
 BYTE velocitaAlieni=10,velocitaAsteroidi=4;
 int nauLChar=VK_LEFT,nauRChar=VK_RIGHT,nauFChar=VK_SPACE;
@@ -52,10 +53,10 @@ struct MOB myAlieni[MAX_ALIENI+1];
 struct MOB myMob[20];
 struct MOB myOmini[7];
 struct MOB myStars[3];
-//BYTE bombs[MAX_BOMBE];
+struct MOB myMeteorite;
 BYTE basi[3][3];
-WORD fuel;
-BYTE ominiRescued,ominiLost;
+WORD fuel[2];
+BYTE ominiRescued[2],ominiLost[2];
 HDC hCompDC;
 UINT hTimer;
 WORD demoTime;
@@ -115,7 +116,7 @@ void Wait /*DoEvents*/(WORD millisec) {
 				// Handle errors/exit application, etc.
 				}
 			else {
-				if(msg.message == WM_PAINT) {
+				if(msg.message /*== WM_PAINT*/ != WM_TIMER) {
 					TranslateMessage(&msg);
 					DispatchMessage(&msg);
 					}
@@ -162,29 +163,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 					break;
 
 				case ID_FILE_NEW:
-					if(credit>0)			// disattivare se credit=0??
+					if(credit>0)			// 
 						credit--;
 					playTime=0;
-					totShips[0]=3;
-					score[0]=0;
+					totShips[0]=3; if(totPlayers>1) totShips[1]=3; else totShips[1]=0;
+					score[player]=0;
 					TimerCnt=(TIMER_GRANULARITY);			// forza redraw iniziale!
 					bPlayMode=PLAY_STARTING;
-					currQuadro=1;
+					currQuadro[player]=1;
 					maxBombeNow=5;
-					fuel=800;
-					ominiRescued=ominiLost=0;
+					fuel[player]=800;
+					ominiRescued[player]=ominiLost[player]=0;
 
 					loadMobs(PLAY_MOTHERSHIPWAITING);
 					velocitaAlieni=10;		//v.sotto
 
 					RedrawWindow(hWnd,NULL,NULL,RDW_INVALIDATE | RDW_ERASE);
 					// continua a venir cancellata DOPO...
-					mp=&myMob[0];
-					mp->x.whole=20*doubleSize;
 					hDC=GetDC(hWnd);
-//					SelectObject(hDC,hBrush);
-//					PatBlt(hDC,mp->x,mp->y,mp->s.cx,mp->s.cy,PATCOPY);
-					MobDrawXY(hDC,mp,mp->x.whole,mp->y.whole);
 					ReleaseDC(hWnd,hDC);
 
 updPlay:
@@ -192,7 +188,7 @@ updPlay:
 					break;
 
 				case ID_FILE_CLOSE:
-					currQuadro=0;		// tanto per
+					currQuadro[player]=0;		// tanto per
 					InvalidateRect(hWnd,NULL,TRUE);
 					bPlayMode=PLAY_IDLE;
 					goto updPlay;
@@ -232,6 +228,14 @@ updPlay:
 
 				case ID_OPZIONI_SUONI:
 					bSuoni=!bSuoni;
+					break;
+
+				case ID_OPZIONI_1GIOCATORE:
+					totPlayers=1;
+					break;
+
+				case ID_OPZIONI_2GIOCATORI:
+					totPlayers=2;
 					break;
 
 				case ID_EDIT_PASTE:
@@ -305,7 +309,8 @@ updPlay:
 				case PLAY_IDLE:
 					SetTextColor(hDC,RGB(255,255,255));
 					SetBkColor(hDC,RGB(0,0,0));
-					goto plot_credit;
+					if(TimerState>0)			// v. sotto
+						goto plot_credit;
 					break;
 
 				case PLAY_MOTHERSHIPWAITING:
@@ -353,13 +358,23 @@ updPlay:
 					for(i=0; i<MAX_SHIPS; i++) {		// astronavi rimaste
 						SelectObject(hDC,hBrush);
 						PatBlt(hDC,30*doubleSize+(mp->s.cx+4)*i,AppYSizeR-13*doubleSize,mp->s.cx,mp->s.cy,PATCOPY);
-						if(i<(totShips[0]-1))
+						if(i<(totShips[0]-1)) {
+							MobSetColor(mp,1,RGB(255,255,0),0);
 							MobDrawXY(hDC,mp,30*doubleSize+(mp->s.cx+4)*i,AppYSizeR-13*doubleSize);
+							}
+						if(totPlayers>1) {
+							SelectObject(hDC,hBrush);
+							PatBlt(hDC,90*doubleSize+(mp->s.cx+4)*i,AppYSizeR-13*doubleSize,mp->s.cx,mp->s.cy,PATCOPY);
+							if(i<(totShips[1]-1)) { // in effetti dovrebbe considerare quella in uso, ossia +1 su player2... FINIRE
+								MobSetColor(mp,1,RGB(255,0,255),0);
+								MobDrawXY(hDC,mp,90*doubleSize+(mp->s.cx+4)*i,AppYSizeR-13*doubleSize);
+								}
+							}
 						}
 					SetTextColor(hDC,RGB(0,255,0));
 					SetBkColor(hDC,RGB(0,0,0));
 					TextOut(hDC,28*doubleSize,45*doubleSize,"FUEL",4);
-					wsprintf(myBuf,"%03u",fuel);
+					wsprintf(myBuf,"%03u",fuel[player]);
 					SetTextColor(hDC,RGB(255,255,255));
 					TextOut(hDC,64*doubleSize,45*doubleSize,myBuf,_tcslen(myBuf));
 
@@ -368,7 +383,7 @@ plot_omini:
 					for(i=0; i<6; i++) {		// omini salvati
 						SelectObject(hDC,hBrush);
 						PatBlt(hDC,AppXSizeR-55*doubleSize-20*i*doubleSize,45*doubleSize,mp->s.cx,mp->s.cy,PATCOPY);
-						if(i<(ominiRescued-ominiLost))
+						if(i<(ominiRescued[player]-ominiLost[player]))
 							MobDrawXY(hDC,mp,AppXSizeR-55*doubleSize-20*i*doubleSize,45*doubleSize);
 						}
 
@@ -399,6 +414,11 @@ plot_credit:
 					wsprintf(myBuf,"%2u",credit);
 					SetTextColor(hDC,RGB(255,255,255));
 					TextOut(hDC,AppXSizeR-40*doubleSize,AppYSizeR-15*doubleSize,myBuf,_tcslen(myBuf));
+					SetTextColor(hDC,player ? RGB(255,0,255) : RGB(255,255,0));
+					if(currQuadro[player]>0) {		// ovvero non demo non idle
+						wsprintf(myBuf,"%u",currQuadro[player]);
+						TextOut(hDC,AppXSizeR-17*doubleSize,AppYSizeR-28*doubleSize,myBuf,1);
+						}
 
 					break;
 				}
@@ -428,13 +448,13 @@ plot_credit:
 						myMob[0].speed.x=+3*doubleSize;
 						}
 					else if(i==nauFChar) {
-						if(fuel>0) {
+						if(fuel[player]>0) {
 							RECT fuelRect={ 58*doubleSize,43*doubleSize,98*doubleSize,57*doubleSize };
 							myMob[0].speed.y=1*doubleSize;
 							myMob[1].bVis=1;
 							if(bSuoni)
 								PlayResource(MAKEINTRESOURCE(IDR_WAVE_THRUST),FALSE);
-							fuel-=10;
+							fuel[player]-=10;
 							InvalidateRect(hWnd,&fuelRect,TRUE);
 							}
 						}
@@ -554,6 +574,7 @@ plot_credit:
 			hiScore=GetPrivateProfileInt(APPNAME,"HiScore",5000,INIFile);
 
 			credit=0;
+			player=0; totPlayers=1;
 
 			hTimer=SetTimer(hWnd,1,1000/TIMER_GRANULARITY,NULL /*(TIMERPROC)myTimerProc*/);
 
@@ -581,9 +602,9 @@ plot_credit:
 							SetBkColor(hDC,RGB(0,0,0));
 							hOldFont=SelectObject(hDC,hFont2);
 							SetTextColor(hDC,RGB(255,0,255));
-							wsprintf(myBuf,"PLAY PLAYER<%u>",1   );		// finire
+							wsprintf(myBuf,"PLAY PLAYER<%u>",player+1);		// 
 							TextOut(hDC,AppXSizeR/4+25*doubleSize,AppYSizeR/2-25*doubleSize,myBuf,_tcslen(myBuf));
-							wsprintf(myBuf,"= %u POINTS",50*currQuadro);
+							wsprintf(myBuf,"= %u POINTS",50*currQuadro[player]);
 							SetTextColor(hDC,RGB(0,255,255));
 							TextOut(hDC,AppXSizeR/4+42*doubleSize,AppYSizeR/2+1*doubleSize,myBuf,_tcslen(myBuf));
 							MobSetColor(&myOmini[6],1,RGB(0,255,255),0);
@@ -609,15 +630,15 @@ plot_credit:
 							// fare casuale, o con sequenze prememorizzate
 							basi[1][0]=1; basi[1][1]=1; basi[1][2]=0;
 							basi[2][0]=0; basi[2][1]=1; basi[2][2]=0;
-							for(i=0; i<6; i++) {			// 
+							for(i=0; i<6; i++)
 								myOmini[i].bVis=1;
-								}
 							SelectObject(hDC,hOldFont);
 							ReleaseDC(hWnd,hDC);
-							fuel=800;
-							ominiRescued=ominiLost=0;
+							fuel[player]=800;
+							ominiRescued[player]=ominiLost[player]=0;
 							InvalidateRect(hWnd,NULL,TRUE);
-							animateOmini(hWnd,5-ominiRescued);
+							myMeteorite.bVis=0;
+							animateOmini(hWnd,5-ominiRescued[player]);
 							bPlayMode=PLAY_MOTHERSHIPWAITING;
 							subPlayMode=SUBPLAY_SPACESHIPTOFALL;
 							break;
@@ -638,8 +659,7 @@ plot_credit:
 		// INSERIRE animazione portello mothership...
 								hDC=GetDC(hWnd);
 								MobErase(hDC,&myMob[2]);
-								SelectObject(hCompDC,myMob[2].hImgAlt);
-								MobDraw(hDC,&myMob[2]);
+								MobDrawImage(hDC,&myMob[2],myMob[2].hImgAlt);
 								ReleaseDC(hWnd,hDC);
 
 								loadMobs(bPlayMode);
@@ -651,11 +671,12 @@ plot_credit:
 								i=animateAsteroidi(hWnd);
 								}
 							if(!(TimerCnt % 5)) {
-								animateOmini(hWnd,5-ominiRescued);
+								animateOmini(hWnd,5-ominiRescued[player]);
 								}
 							break;
 						case SUBPLAY_SPACESHIPTOFALL:
 							subPlayModeTime=timeGetTime()+(16+(rand() & 7))*1000;
+							myMeteorite.bVis=0;
 							subPlayMode=SUBPLAY_NONE;
 							break;
 						}
@@ -672,14 +693,14 @@ plot_credit:
 							PlayResource(MAKEINTRESOURCE(IDR_WAVE_SHIPFALLING),FALSE);// NON fare se thrust
 						}
 					if(!(TimerCnt % 5)) {
-						animateOmini(hWnd,5-ominiRescued);
+						animateOmini(hWnd,5-ominiRescued[player]);
 						}
 					if(!(TimerCnt % velocitaAsteroidi)) {
 						i=animateAsteroidi(hWnd);
 						if(i) {
 
 spaceshipcrashed:
-							totShips[0]--;
+							totShips[player]--;
 							myMob[0].speed.x=myMob[0].speed.y=0;
 							myMob[1].bVis=0;
 							subPlayMode=SUBPLAY_SPACESHIPBOOM;
@@ -690,9 +711,11 @@ spaceshipcrashed:
 					switch(subPlayMode) {
 						case SUBPLAY_NONE:
 							mp=&myMob[0];				// astronave
-							j=mp->x.whole+mp->s.cx/2 ;
-							if(mp->y.whole > (AppYSizeR-mp->s.cy-70*doubleSize)) {		// aggiungere "gradienti" dei gradini :D ...
-								if(j < (20*doubleSize) || j > (AppXSizeR-20*doubleSize)) {		// 
+							j=mp->x.whole+mp->s.cx/2;
+							if(mp->y.whole > (AppYSizeR-mp->s.cy-80*doubleSize)) {		// aggiungere "gradienti" dei gradini :D ...
+
+//								if(j < (20*doubleSize) || j > (AppXSizeR-20*doubleSize)) {		// 
+								if(MobCollisionColor(mp,RGB(0,255,0),1)) {		// opp colore verde...
 									goto spaceshipcrashed;
 									}
 								}
@@ -701,14 +724,14 @@ spaceshipcrashed:
 									if(basi[2][i]) {
 										if(j > (AppXSizeR/6+i*AppXSizeR/3.3-15*doubleSize) && j < (AppXSizeR/6+i*AppXSizeR/3.3+35*doubleSize)) {		// 
 											basi[2][i]=0;
-											score[0]+=50;
+											score[player]+=50;
 spaceshiplanded:
 											mp->speed.x=mp->speed.y=0;
 											bPlayMode=PLAY_SPACESHIPRESCUING;
-											myOmini[5-ominiRescued].speed.x=0;
-											myOmini[5-ominiRescued].speed.y=3*doubleSize;
-											myOmini[5-ominiRescued].mirrorX= ominiRescued >= 3 ? 1 : 0;
-											MobSetColor(&myOmini[5-ominiRescued],1,RGB(255,255,255),0);
+											myOmini[5-ominiRescued[player]].speed.x=0;
+											myOmini[5-ominiRescued[player]].speed.y=3*doubleSize;
+											myOmini[5-ominiRescued[player]].mirrorX= ominiRescued[player] >= 3 ? 1 : 0;
+											MobSetColor(&myOmini[5-ominiRescued[player]],1,RGB(255,255,255),0);
 											}
 										}
 									}
@@ -718,7 +741,7 @@ spaceshiplanded:
 									if(basi[1][i]) {
 										if(j > (AppXSizeR/6+i*AppXSizeR/3.3-8*doubleSize) && j < (AppXSizeR/6+i*AppXSizeR/3.3+30*doubleSize)) {		// 
 											basi[1][i]=0;
-											score[0]+=100;
+											score[player]+=100;
 											goto spaceshiplanded;
 											}
 										}
@@ -729,7 +752,7 @@ spaceshiplanded:
 									if(basi[0][i]) {
 										if(j > (AppXSizeR/6+i*AppXSizeR/3.3) && j < (AppXSizeR/6+i*AppXSizeR/3.3+22*doubleSize)) {		// 
 											basi[0][i]=0;
-											score[0]+=150;
+											score[player]+=150;
 											goto spaceshiplanded;
 											}
 										}
@@ -756,16 +779,16 @@ spaceshiplanded:
 							PlayResource(MAKEINTRESOURCE(IDR_WAVE_MANBOARDING),TRUE);
 						}
 					if(!(TimerCnt % (TIMER_GRANULARITY/10))) {
-						i=animateOmini(hWnd,5-ominiRescued);
+						i=animateOmini(hWnd,5-ominiRescued[player]);
 						switch(i) {
 							case 1:
 								// l'ultimo è in alto a dx, ed è il primo che va via
-								myOmini[5-ominiRescued].speed.x= (ominiRescued >= 3 ? +5 : -5)*doubleSize;
-								myOmini[5-ominiRescued].speed.y=0;
+								myOmini[5-ominiRescued[player]].speed.x= (ominiRescued[player] >= 3 ? +5 : -5)*doubleSize;
+								myOmini[5-ominiRescued[player]].speed.y=0;
 								break;
 							case 2:
-								myOmini[5-ominiRescued].speed.x=0;
-								myOmini[5-ominiRescued].speed.y=-3*doubleSize;
+								myOmini[5-ominiRescued[player]].speed.x=0;
+								myOmini[5-ominiRescued[player]].speed.y=-3*doubleSize;
 								break;
 							case 3:
 								for(i=0; i<MAX_ASTEROIDI; i++) {							// trasformare asteroidi in alieni... (v.video, anche se in effetti son sempre di meno!
@@ -779,8 +802,8 @@ spaceshiplanded:
 								{ RECT myRect={ AppXSizeR/8+4*doubleSize,BASI_AREA,(AppXSizeR*7)/8-4*doubleSize,AppYSizeR-20*doubleSize };
 									InvalidateRect(hWnd,&myRect,TRUE);		// aggiorno le Basi, ORA!
 								}
-								MobErase(hDC,&myOmini[5-ominiRescued]);
-								myOmini[5-ominiRescued].bVis=0;
+								MobErase(hDC,&myOmini[5-ominiRescued[player]]);
+								myOmini[5-ominiRescued[player]].bVis=0;
 								myMob[1].bVis=1;
 								myMob[0].speed.y=-1*doubleSize;
 								if(!myMob[2].speed.x)		// riparte mothership
@@ -788,8 +811,7 @@ spaceshiplanded:
 								bPlayMode=PLAY_SPACESHIPRISING;
 								loadMobs(bPlayMode);
 
-
-								animateOmini(hWnd,5-ominiRescued);
+								animateOmini(hWnd,5-ominiRescued[player]);
 								break;
 							}
 						}
@@ -809,8 +831,7 @@ spaceshiplanded:
 						hDC=GetDC(hWnd);
 						MobErase(hDC,&myMob[2]);
 						MobSetImage(&myMob[2],0,IDB_MOTHERSHIP3);
-						SelectObject(hCompDC,myMob[2].hImgAlt);
-						MobDraw(hDC,&myMob[2]);
+						MobDrawImage(hDC,&myMob[2],myMob[2].hImgAlt);
 						// cambio forma e aprire porta mothership qua!
 						ReleaseDC(hWnd,hDC);
 						}
@@ -832,12 +853,17 @@ spaceshipdocked:
 								PlayResource(MAKEINTRESOURCE(IDR_WAVE_RESCUEOK),FALSE);
 							subPlayModeTime=timeGetTime()+2000;		// 
 							}
-						else {
+						else {		// opp. anche CollosionColor con il giallo mothership...
 							goto spaceshipcrashed2;
 							}
 						}
 					if(mp->y.whole < ((SCORE_AREA  +10)*doubleSize)) {
 						goto spaceshipcrashed2;
+						}
+					if(mp->y.whole > (AppYSizeR-mp->s.cy-80*doubleSize)) {		// [aggiungere "gradienti" dei gradini :D ...]
+						if(MobCollisionColor(mp,RGB(0,255,0),1)) {		// se verde (non-nero non va, ci sono altre cose)
+							goto spaceshipcrashed2;
+							}
 						}
 					if(!(TimerCnt % TIMER_GRANULARITY)) {
 						playTime++;
@@ -850,14 +876,14 @@ spaceshipdocked:
 										myMob[i].x.whole=pos.x+ALIEN_X_SIZE/2-0*doubleSize;
 										myMob[i].y.whole=pos.y+ALIEN_Y_SIZE;
 										myMob[i].bVis=1;
-										myMob[i].speed.y=(3+3*(currQuadro/3))*doubleSize;
+										myMob[i].speed.y=(3+3*(currQuadro[player]/3))*doubleSize;
 										break;
 										}
 									}
 								}
 							}
 
-//						if(!totShips[0]) {
+//						if(!totShips[player]) {
 //							bPlayMode=PLAY_ENDING;
 //							}
 
@@ -875,12 +901,37 @@ spaceshipcrashed2:
 							subPlayMode=SUBPLAY_SPACESHIPBOOM;
 							subPlayModeTime=timeGetTime()+3000;		// qua di +!!
 							bPlayMode=PLAY_PAUSED;
-							totShips[0]--;
+							totShips[player]--;
+
+							if(totPlayers>1) {
+								player++; player &= 1;
+								}
 
 //#pragma warning RIMETTERE A POSTO OMINO se schianta! o disperdere cmq
-							ominiRescued++;
-							ominiLost++;
+							ominiRescued[player]++;
+							ominiLost[player]++;
 
+							}
+						}
+					if(currQuadro[player]>=3 && (rand() % 20) < currQuadro[player] && !myMeteorite.bVis) {
+						myMeteorite.bVis=1;
+						if(bSuoni)
+							PlayResource(MAKEINTRESOURCE(IDR_WAVE_METEOR),TRUE);
+						if(myMob[0].x.whole<AppXSizeR/2 /*rand() & 1*/) {
+							myMeteorite.x.whole=AppXSizeR-(40+(rand() & 8))*doubleSize;
+							myMeteorite.speed.x=-4*doubleSize-(rand() & 1);
+							}
+						else {
+							myMeteorite.x.whole=(40+(rand() & 8))*doubleSize;
+							myMeteorite.speed.x=4*doubleSize+(rand() & 1);
+							}
+						myMeteorite.y.whole=(ALIEN_ASTEROID_AREA+(rand() & 8))*doubleSize;
+						myMeteorite.speed.y=4*doubleSize+(rand() & 1);
+						}
+					if(myMeteorite.bVis) {
+						if(MobCollision(&myMob[0],&myMeteorite)) {
+							myMeteorite.bVis=0;
+							goto spaceshipcrashed2;
 							}
 						}
 					switch(subPlayMode) {
@@ -896,11 +947,10 @@ spaceshipcrashed2:
 							else {
 								hDC=GetDC(hWnd);
 								MobErase(hDC,&myAlieni[10]);
-								SelectObject(hCompDC,rand() & 1 ? myAlieni[10].hImg : myAlieni[10].hImgAlt);
 								i=MobGetColor(&myAlieni[subPlayData],-1);
 								MobSetColor(&myAlieni[10],0,i,0);
 								MobSetColor(&myAlieni[10],1,i,0);
-								MobDraw(hDC,&myAlieni[10]);
+								MobDrawImage(hDC,&myAlieni[10],rand() & 1 ? myAlieni[10].hImg : myAlieni[10].hImgAlt);
 								ReleaseDC(hWnd,hDC);
 								}
 							break;
@@ -914,9 +964,9 @@ spaceshipcrashed2:
 					switch(subPlayMode) {
 						default:
 							if(timeGetTime() > subPlayModeTime) {
-								ominiRescued++;
+								ominiRescued[player]++;
 								InvalidateRect(hWnd,NULL,TRUE);
-								if(ominiRescued==6      /*6*/) {
+								if(ominiRescued[player]==6      /*6*/) {
 
 nuovoQuadro:
 
@@ -928,20 +978,24 @@ nuovoQuadro:
 
 										while((ominiRescued-ominiLost) > 0) {
 											RECT scoreRect={ 0,0,AppXSizeR,(SCORE_AREA  +20)*doubleSize };
-											score[0] += currQuadro*50;
+											score[0] += currQuadro[player]*50;
 											if(bSuoni)
 												PlayResource(MAKEINTRESOURCE(IDR_WAVE_BEEP),TRUE);
-											ominiRescued--;
+											ominiRescued[player]--;
 											InvalidateRect(hWnd,&scoreRect,TRUE);
 											Wait(400);
 											}
 
 									//bonus 500 punti? sempre??
 
-									currQuadro++;
-									currQuadro=min(currQuadro,MAX_QUADRI);		// 
+									currQuadro[player]++;
+									currQuadro[player]=min(currQuadro[player],MAX_QUADRI);		// 
 
-									maxBombeNow=min(10,5+currQuadro/2);
+									if(currQuadro[player] == 5) {
+										// fare jingle!
+										}
+
+									maxBombeNow=min(10,5+currQuadro[player]/2);
 
 
 
@@ -950,7 +1004,7 @@ nuovoQuadro:
 
 									// if FINITO! ...
 			//incorporato						loadMobs(PLAY_MOTHERSHIPWAITING);
-									velocitaAlieni=10+currQuadro*2;			// 
+									velocitaAlieni=10+currQuadro[player]*2;			// 
 									}
 								else {
 									bPlayMode=PLAY_MOTHERSHIPWAITING;
@@ -975,9 +1029,9 @@ nuovoQuadro:
 							if(timeGetTime() > subPlayModeTime) {
 								hDC=GetDC(hWnd);
 								subPlayMode=SUBPLAY_NONE;
-								if(totShips[0]>0) {
+								if(totShips[player]>0) {
 									InvalidateRect(hWnd,NULL,TRUE);
-									animateOmini(hWnd,5-ominiRescued);
+									animateOmini(hWnd,5-ominiRescued[player]);
 									bPlayMode=PLAY_MOTHERSHIPWAITING;
 									loadMobs(bPlayMode);
 									subPlayMode=SUBPLAY_SPACESHIPTOFALL;
@@ -988,10 +1042,11 @@ nuovoQuadro:
 								}
 							else {
 								hDC=GetDC(hWnd);
+								MobSetImage(&myMob[0],rand() & 1 ? IDB_SPACESHIPBOOM : IDB_SPACESHIPBOOM1,
+									rand() & 1 ? IDB_SPACESHIPBOOM1 : IDB_SPACESHIPBOOM2);
 								MobErase(hDC,&myMob[0]);
-								MobSetImage(&myMob[0],IDB_SPACESHIPBOOM2,0);
-								SelectObject(hCompDC,timeGetTime() & 2 ? myMob[0].hImg : myMob[0].hImgAlt);
-								MobDraw(hDC,&myMob[0]);
+								MobDrawImage(hDC,&myMob[0],rand() & 1 /*timeGetTime() & 2*/ ? myMob[0].hImg : myMob[0].hImgAlt);
+
 								ReleaseDC(hWnd,hDC);
 								}
 							break;
@@ -1001,6 +1056,9 @@ nuovoQuadro:
 
 				case PLAY_ENDING:
 					myMob[2].speed.x=myMob[2].speed.y=0;		// mothership
+					myMob[0].speed.x=myMob[0].speed.y=0;		// x sicurezza :)
+					myMob[1].speed.x=myMob[1].speed.y=0;		// x sicurezza :)
+					myMob[3].speed.x=myMob[3].speed.y=0;		//
 					loadMobs(PLAY_ENDING);
 
 					{ const char *s="GAME OVER",*p=s;
@@ -1013,7 +1071,7 @@ nuovoQuadro:
 					hOldFont=SelectObject(hDC,hTitleFont);
 					x=AppXSizeR/3.15;
 					y=AppYSizeR/2-10*doubleSize;
-					for(i=0; i<9; i++) {
+					for(i=0; i<_tcslen(s); i++) {
 						myBuf[0]=*p++; myBuf[1]=0;
 						TextOut(hDC,x,y,myBuf,1);
 						x+=10*doubleSize;
@@ -1024,6 +1082,11 @@ nuovoQuadro:
 					SelectObject(hDC,hOldFont);
 					ReleaseDC(hWnd,hDC);
 					}
+
+					switch(subPlayMode) {
+						case SUBPLAY_NONE:
+							break;
+						}
 
 					if(score[0] > hiScore)
 						hiScore=score[0];
@@ -1041,6 +1104,7 @@ nuovoQuadro:
 							RECT myRect;
 
 							case 0:
+							case 1:
 //								InvalidateRect(hWnd,NULL,TRUE);
 								hDC=GetDC(hWnd);
 								hImg=LoadBitmap(g_hinst,MAKEINTRESOURCE(IDB_LUNARRESCUE));
@@ -1048,10 +1112,137 @@ nuovoQuadro:
 								StretchBlt(hDC,0,0,AppXSizeR,AppYSizeR,hCompDC,0,0,280 /*240*/,320,SRCCOPY);
 								ReleaseDC(hWnd,hDC);
 								break;
-							case 1:
+							case 2:
 								InvalidateRect(hWnd,NULL,TRUE);
 								break;
-							case 2:
+							case 3:
+								hDC=GetDC(hWnd);
+								hImg=LoadBitmap(g_hinst,MAKEINTRESOURCE(IDB_JINGLE));
+								SelectObject(hCompDC,hImg);
+								StretchBlt(hDC,(AppXSizeR-162*doubleSize)/2+32*doubleSize,(AppYSizeR-72*doubleSize)/2-33*doubleSize,
+									162*doubleSize,72*doubleSize,hCompDC,0,0,162,72,SRCCOPY);
+								// è un pelo troppo in su a dimensione piccola...
+								x=AppXSizeR/2-54*doubleSize;
+								y=AppYSizeR/2-10*doubleSize;
+								MobCreate(&myAlieni[10],IDB_MOSTRO1,IDB_MOSTRO1R,16*doubleSize,16*doubleSize,FALSE);
+								MobSetColor(&myAlieni[10],1,RGB(0,255,255),0);
+								MobDrawXY(hDC,&myAlieni[10],x,y);
+								x+=17*doubleSize;
+								MobDrawXY(hDC,&myAlieni[10],x,y);
+								x+=17*doubleSize;
+								MobDrawXY(hDC,&myAlieni[10],x,y);
+								x+=47*doubleSize;
+								MobDrawXY(hDC,&myAlieni[10],x,y);
+								x+=17*doubleSize;
+								MobDrawXY(hDC,&myAlieni[10],x,y);
+								x+=17*doubleSize;
+								MobDrawXY(hDC,&myAlieni[10],x,y);
+								MobSetImage(&myAlieni[10],IDB_MOSTRO2,IDB_MOSTRO2R);
+								MobSetColor(&myAlieni[10],1,RGB(0,255,255),0);
+								x-=60*doubleSize;
+								MobDrawXY(hDC,&myAlieni[10],x,y-3*doubleSize);
+								SetTextColor(hDC,RGB(255,255,0));
+								SetBkColor(hDC,RGB(0,0,0));
+								x=AppXSizeR/6;
+								y=70*doubleSize;
+								hOldFont=SelectObject(hDC,hTitleFont);
+								TextOut(hDC,x,y,"*** LUNAR  RESCUE ***",22);
+								SetTextColor(hDC,RGB(255,0,0));
+								x=AppXSizeR/2.35;
+								y=230*doubleSize;
+								TextOut(hDC,x,y,"1979",4);
+								SetTextColor(hDC,RGB(0,255,0));
+								x=AppXSizeR/6.5;
+								y=250*doubleSize;
+								TextOut(hDC,x,y,"(C) TAITO CORPORATION",21);
+								SetTextColor(hDC,RGB(0,255,0));
+								x=AppXSizeR/8.5;
+								y=270*doubleSize;
+										GetTextExtentPoint32(hDC,myBuf,strlen(myBuf),&mySize);
+								TextOut(hDC,x,y,"2023 DARIO'S AUTOMATION",23);
+								SelectObject(hDC,hOldFont);
+								ReleaseDC(hWnd,hDC);
+								break;
+							case 4:
+								{ const char *s="PLEASE INSERT COIN",*p=s;
+								int x,y;
+								RECT myRect;
+
+								hDC=GetDC(hWnd);
+								SetBkColor(hDC,RGB(0,0,0));
+								SetTextColor(hDC,RGB(0,255,0));
+								hOldFont=SelectObject(hDC,hTitleFont);
+								x=AppXSizeR/2-35*doubleSize;
+								y=AppYSizeR/2-64*doubleSize;
+								for(i=0; i<strlen(s); i++) {
+									myBuf[0]=*p++; myBuf[1]=0;
+									if(i==7) {
+										SetTextColor(hDC,RGB(255,0,255));
+										x=AppXSizeR/2-18*doubleSize;
+										y+=16*doubleSize;
+										}
+									TextOut(hDC,x,y,myBuf,1);
+									x+=10*doubleSize;
+									myRect.left=x; myRect.top=y; myRect.right=x+8*doubleSize; myRect.bottom=y+8*doubleSize;
+									InvalidateRect(hWnd,&myRect,TRUE);
+									Wait(150);
+									animateMobs(hWnd,PLAY_IDLE);
+									}
+								SelectObject(hDC,hOldFont);
+								ReleaseDC(hWnd,hDC);
+								}
+								break;
+							case 5:
+								{ RECT myRect;
+									x=AppXSizeR/2-54*doubleSize;
+									y=AppYSizeR/2-15*doubleSize;
+									myRect.left=x; myRect.top=y; myRect.right=x+130*doubleSize; myRect.bottom=y+20*doubleSize;
+									InvalidateRect(hWnd,&myRect,TRUE);
+									Wait(50);
+								}
+								TimerState=6;
+//								break;
+							case 6:
+								hDC=GetDC(hWnd);
+								x=AppXSizeR/2-54*doubleSize;
+								y=AppYSizeR/2-10*doubleSize;
+								MobSetImage(&myAlieni[10],IDB_MOSTRO1,IDB_MOSTRO1R);
+								MobSetColor(&myAlieni[10],0,RGB(0,255,255),0);
+								MobDrawImageXY(hDC,&myAlieni[10],myAlieni[10].hImgAlt,x,y);
+								x+=17*doubleSize;
+								MobDrawImageXY(hDC,&myAlieni[10],myAlieni[10].hImgAlt,x,y);
+								x+=17*doubleSize;
+								MobDrawImageXY(hDC,&myAlieni[10],myAlieni[10].hImgAlt,x,y);
+								x+=47*doubleSize;
+								MobDrawImageXY(hDC,&myAlieni[10],myAlieni[10].hImgAlt,x,y);
+								x+=17*doubleSize;
+								MobDrawImageXY(hDC,&myAlieni[10],myAlieni[10].hImgAlt,x,y);
+								x+=17*doubleSize;
+								MobDrawImageXY(hDC,&myAlieni[10],myAlieni[10].hImgAlt,x,y);
+								x-=60*doubleSize;
+								MobSetImage(&myAlieni[10],IDB_MOSTRO2,IDB_MOSTRO2R);
+								MobSetColor(&myAlieni[10],0,RGB(0,255,255),0);
+								MobDrawImageXY(hDC,&myAlieni[10],myAlieni[10].hImgAlt,x,y-3*doubleSize);
+								ReleaseDC(hWnd,hDC);
+								break;
+							case 7:
+								break;
+							case 8:
+								InvalidateRect(hWnd,NULL,TRUE);
+								TimerState=10;
+								break;
+							case 9:
+								break;
+							case 10:
+								break;
+							case 11:
+								break;
+							case 12:
+								TimerState=19;
+								break;
+							case 19:
+								break;
+							case 20:
 								hDC=GetDC(hWnd);
 								x=AppXSizeR/3.15;
 								y=80*doubleSize;
@@ -1078,7 +1269,7 @@ nuovoQuadro:
 								SelectObject(hCompDC,hImg);
 								StretchBlt(hDC,x-48*doubleSize,y+4*doubleSize,22*doubleSize,10*doubleSize,hCompDC,0,0,22,10,SRCCOPY);
 								break;
-							case 3:
+							case 21:
 								hDC=GetDC(hWnd);
 								SetTextColor(hDC,RGB(0,255,0));
 								SetBkColor(hDC,RGB(0,0,0));
@@ -1091,13 +1282,14 @@ nuovoQuadro:
 									myRect.left=x; myRect.top=y; myRect.right=x+8*doubleSize; myRect.bottom=y+8*doubleSize;
 									InvalidateRect(hWnd,&myRect,TRUE);
 									Wait(150);
+									animateMobs(hWnd,PLAY_IDLE);
 									}
 								x+=10*doubleSize;
 								TextOut(hDC,x,y,"30 POINTS",9);
 								SelectObject(hDC,hOldFont);
 								ReleaseDC(hWnd,hDC);
 								break;
-							case 4:
+							case 22:
 								hDC=GetDC(hWnd);
 								SetTextColor(hDC,RGB(0,255,0));
 								SetBkColor(hDC,RGB(0,0,0));
@@ -1116,7 +1308,7 @@ nuovoQuadro:
 								SelectObject(hDC,hOldFont);
 								ReleaseDC(hWnd,hDC);
 								break;
-							case 5:
+							case 23:
 								hDC=GetDC(hWnd);
 								SetTextColor(hDC,RGB(255,0,255));
 								SetBkColor(hDC,RGB(0,0,0));
@@ -1135,7 +1327,7 @@ nuovoQuadro:
 								SelectObject(hDC,hOldFont);
 								ReleaseDC(hWnd,hDC);
 								break;
-							case 6:
+							case 24:
 								hDC=GetDC(hWnd);
 								SetTextColor(hDC,RGB(0,255,255));
 								SetBkColor(hDC,RGB(0,0,0));
@@ -1154,7 +1346,7 @@ nuovoQuadro:
 								SelectObject(hDC,hOldFont);
 								ReleaseDC(hWnd,hDC);
 								break;
-							case 7:
+							case 25:
 								hDC=GetDC(hWnd);
 								SetTextColor(hDC,RGB(255,255,0));
 								SetBkColor(hDC,RGB(0,0,0));
@@ -1173,7 +1365,7 @@ nuovoQuadro:
 								SelectObject(hDC,hOldFont);
 								ReleaseDC(hWnd,hDC);
 								break;
-							case 8:
+							case 26:
 								hDC=GetDC(hWnd);
 								SetTextColor(hDC,RGB(255,0,0));
 								SetBkColor(hDC,RGB(0,0,0));
@@ -1184,7 +1376,7 @@ nuovoQuadro:
 								SelectObject(hDC,hOldFont);
 								ReleaseDC(hWnd,hDC);
 								break;
-							case 9:
+							case 27:
 								hDC=GetDC(hWnd);
 								SetTextColor(hDC,RGB(0,255,0));
 								SetBkColor(hDC,RGB(0,0,0));
@@ -1195,7 +1387,7 @@ nuovoQuadro:
 								SelectObject(hDC,hOldFont);
 								ReleaseDC(hWnd,hDC);
 								break;
-							case 10:
+							case 28:
 								hDC=GetDC(hWnd);
 								SetTextColor(hDC,RGB(0,255,0));
 								SetBkColor(hDC,RGB(0,0,0));
@@ -1207,12 +1399,14 @@ nuovoQuadro:
 								SelectObject(hDC,hOldFont);
 								ReleaseDC(hWnd,hDC);
 								break;
-							case 11:
+							case 29:
 								introScreen++;
 								if(introScreen>3) {
 									bPlayMode=PLAY_DEMO;
+									subPlayMode=SUBPLAY_INIT;
 									InvalidateRect(hWnd,NULL,TRUE);
 									loadMobs(PLAY_STARTING);
+									loadMobs(PLAY_MOTHERSHIPWAITING);
 									myMob[0].x.whole=AppXSizeR/2;
 									demoTime=600;
 									}
@@ -1221,34 +1415,42 @@ nuovoQuadro:
 							}
 						animateMobs(hWnd,bPlayMode);		// per stelline!
 						}
+
+					switch(subPlayMode) {
+						case SUBPLAY_NONE:
+							break;
+						}
+
 					break;
 				case PLAY_DEMO:
-					velocitaAlieni=10;
-				  animateMobs(hWnd,bPlayMode);
-					if(!(TimerCnt % velocitaAlieni)) {
-						animateAlieni(hWnd);
-						hDC=GetDC(hWnd);
+					switch(subPlayMode) {
+						case SUBPLAY_NONE:
+							break;
+						case SUBPLAY_INIT:
+							subPlayMode=SUBPLAY_NONE;
+							velocitaAsteroidi=10;
+							myMob[0].bVis=1;
+							basi[0][0]=basi[0][1]=basi[0][2]=1;			
+							basi[1][0]=1; basi[1][1]=1; basi[1][2]=0;
+							basi[2][0]=0; basi[2][1]=1; basi[2][2]=0;
+							InvalidateRect(hWnd,NULL,TRUE);
+							for(i=0; i<6; i++) 
+								myOmini[i].bVis=1;
+							break;
+						}
 
-						ReleaseDC(hWnd,hDC);
+				  animateMobs(hWnd,bPlayMode);
+					if(!(TimerCnt % velocitaAsteroidi)) {
+						animateAsteroidi(hWnd);
+						animateOmini(hWnd,5);
 						}
 					hDC=GetDC(hWnd);
 					if(!(TimerCnt % (TIMER_GRANULARITY/2))) {
-						mp=&myMob[0];
-						SelectObject(hDC,hBrush);
-						PatBlt(hDC,mp->x.whole,mp->y.whole,mp->s.cx,mp->s.cy,PATCOPY);
-						if(rand() > 20000) {
-							if(mp->x.whole < (AppXSizeR - 20*doubleSize))
-								mp->speed.x=3*doubleSize;
-							else
-								mp->speed.x=0;
-							}
-						else if(rand() > 10000) {
-							if(mp->x.whole > 14*doubleSize)
-								mp->speed.x=-3*doubleSize;
-							else
-								mp->speed.x=0;
-							}
-						MobDrawXY(hDC,mp,mp->x.whole,mp->y.whole);
+						if(!myMob[2].speed.x)
+							myMob[2].speed.x=(rand() & 1 ? 2 : -2)*doubleSize;
+						myMob[0].speed.x=myMob[2].speed.x;
+						myMob[0].x.whole=myMob[2].x.whole+((myMob[2].s.cx-myMob[0].s.cx)/2);
+						myMob[0].y.whole=myMob[2].y.whole+(5)*doubleSize;
 						}
 					ReleaseDC(hWnd,hDC);
 
@@ -1256,6 +1458,8 @@ nuovoQuadro:
 					if(!demoTime) {
 						introScreen=0;
 						bPlayMode=PLAY_IDLE;
+						myMob[0].bVis=0; myMob[0].speed.x=0;
+						myMob[2].bVis=0; myMob[2].speed.x=0;
 						InvalidateRect(hWnd,NULL,TRUE);
 						}
 					break;
@@ -1291,11 +1495,15 @@ nuovoQuadro:
 			break;
 
    	case WM_INITMENU:
-   	  EnableMenuItem((HMENU)wParam,ID_FILE_NEW,(bPlayMode==PLAY_IDLE || bPlayMode==PLAY_DEMO) ? MF_ENABLED : MF_GRAYED);
+   	  EnableMenuItem((HMENU)wParam,ID_FILE_NEW,(credit>0 && (bPlayMode==PLAY_IDLE || bPlayMode==PLAY_DEMO)) ? MF_ENABLED : MF_GRAYED);
    	  EnableMenuItem((HMENU)wParam,ID_FILE_UPDATE,((bPlayMode>=PLAY_MOTHERSHIPWAITING && bPlayMode<=PLAY_SPACESHIPDOCKING) || bPlayMode==PLAY_PAUSED) ? MF_ENABLED : MF_GRAYED);
    	  EnableMenuItem((HMENU)wParam,ID_FILE_CLOSE,((bPlayMode>=PLAY_MOTHERSHIPWAITING && bPlayMode<=PLAY_SPACESHIPDOCKING) || bPlayMode==PLAY_PAUSED) ? MF_ENABLED : MF_GRAYED);
    	  CheckMenuItem((HMENU)wParam,ID_OPZIONI_DIMENSIONEDOPPIA,doubleSize==2 ? MF_CHECKED : MF_UNCHECKED);
    	  CheckMenuItem((HMENU)wParam,ID_OPZIONI_SUONI,bSuoni ? MF_CHECKED : MF_UNCHECKED);
+   	  EnableMenuItem((HMENU)wParam,ID_OPZIONI_1GIOCATORE,(bPlayMode==PLAY_IDLE || bPlayMode==PLAY_DEMO) ? MF_ENABLED : MF_GRAYED);
+   	  EnableMenuItem((HMENU)wParam,ID_OPZIONI_2GIOCATORI,(bPlayMode==PLAY_IDLE || bPlayMode==PLAY_DEMO) ? MF_ENABLED : MF_GRAYED);
+   	  CheckMenuItem((HMENU)wParam,ID_OPZIONI_1GIOCATORE,totPlayers==1 ? MF_CHECKED : MF_UNCHECKED);
+   	  CheckMenuItem((HMENU)wParam,ID_OPZIONI_2GIOCATORI,totPlayers==2 ? MF_CHECKED : MF_UNCHECKED);
 			break;
 
 		case WM_CTLCOLORSTATIC:

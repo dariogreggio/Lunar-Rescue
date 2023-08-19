@@ -1,0 +1,309 @@
+//Microsoft Developer Studio generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// Italian (Italy) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ITA)
+#ifdef _WIN32
+LANGUAGE LANG_ITALIAN, SUBLANG_ITALIAN
+#pragma code_page(1252)
+#endif //_WIN32
+
+#ifndef _MAC
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+1 VERSIONINFO
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0xbL
+#else
+ FILEFLAGS 0xaL
+#endif
+ FILEOS 0x10004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "041004e4"
+        BEGIN
+            VALUE "Comments", "Written by: Dario Greggio\0"
+            VALUE "CompanyName", "Dario's Automation; ADPM Synthesis sas\0"
+            VALUE "FileDescription", "Lunar Rescue\0"
+            VALUE "FileVersion", "1.00\0"
+            VALUE "InternalName", "LunarRescue\0"
+            VALUE "LegalCopyright", "Copyright © Dario's Automation 2023\0"
+            VALUE "LegalTrademarks", "Microsoft® is a registered trademark of Microsoft Corporation. Windows(TM) is a trademark of Microsoft Corporation; TAITO corp. 1979\0"
+            VALUE "OriginalFilename", "\0"
+            VALUE "PrivateBuild", "\0"
+            VALUE "ProductName", "Lunar Rescue\0"
+            VALUE "ProductVersion", "1.01\0"
+            VALUE "SpecialBuild", "\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x410, 1252
+    END
+END
+
+#endif    // !_MAC
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUT DIALOG DISCARDABLE  17, 15, 243, 110
+STYLE DS_MODALFRAME | DS_CENTER | WS_CAPTION | WS_SYSMENU
+CAPTION "Informazioni su Space Invaders"
+FONT 8, "MS Sans Serif"
+BEGIN
+    CTEXT           "Lunar Rescue",IDC_STATIC,41,6,162,8
+    CTEXT           "Versione 1.00",IDC_STATIC,88,25,69,8
+    CTEXT           "Copyright © 2023 Dario's Automation",IDC_STATIC,3,72,
+                    237,9
+    DEFPUSHBUTTON   "OK",1,75,94,40,14,WS_GROUP
+    ICON            IDI_APP32,IDC_STATIC,10,10,20,20,SS_REALSIZEIMAGE | 
+                    SS_SUNKEN | WS_GROUP
+    CTEXT           "",IDS_ABOUT2,3,48,161,8
+    CTEXT           "",IDC_OSVERSION,3,57,161,8
+    PUSHBUTTON      "&Shareware info...",3,130,93,57,14
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_APP32               ICON    DISCARDABLE     "lunarrescue.ICO"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MENU1 MENU DISCARDABLE 
+BEGIN
+    POPUP "&Gioco"
+    BEGIN
+        MENUITEM "&Nuova partita\tF2",          ID_FILE_NEW
+        MENUITEM "&Pausa\tF3",                  ID_FILE_UPDATE
+        MENUITEM "&Fine partita",               ID_FILE_CLOSE
+        MENUITEM SEPARATOR
+        MENUITEM "&Esci",                       ID_APP_EXIT
+    END
+    POPUP "&Edit"
+    BEGIN
+        MENUITEM "&Copia",                      ID_EDIT_COPY
+        MENUITEM "&Incolla\tShift+Ins",         ID_EDIT_PASTE
+    END
+    POPUP "&Opzioni"
+    BEGIN
+        MENUITEM "&Gioco...",                   ID_OPZIONI_NOASCII
+        MENUITEM "&Credito\tF9",                ID_OPZIONI_CREDITO
+        MENUITEM "Dimensione &doppia",          ID_OPZIONI_DIMENSIONEDOPPIA
+        MENUITEM "Suoni",                       ID_OPZIONI_SUONI
+        MENUITEM SEPARATOR
+        MENUITEM "&1 giocatore",                ID_OPZIONI_1GIOCATORE
+        MENUITEM "&2 giocatori",                ID_OPZIONI_2GIOCATORI
+    END
+    POPUP "&?"
+    BEGIN
+        MENUITEM "&Sommario...\tF1",            ID_HELP
+        MENUITEM "Cerca &argomento...",         ID_HELP_INDEX
+        MENUITEM "Come usare la &Guida",        ID_HELP_USING
+        MENUITEM SEPARATOR
+        MENUITEM "&Informazioni su Lunar Rescue...", ID_APP_ABOUT
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Accelerator
+//
+
+IDR_ACCELERATOR1 ACCELERATORS DISCARDABLE 
+BEGIN
+    "A",            ID_FILE_OPEN,           VIRTKEY, CONTROL, NOINVERT
+    VK_F1,          ID_HELP,                VIRTKEY, NOINVERT
+    VK_F2,          ID_FILE_NEW,            VIRTKEY, NOINVERT
+    VK_F3,          ID_FILE_UPDATE,         VIRTKEY, NOINVERT
+    VK_F9,          ID_OPZIONI_CREDITO,     VIRTKEY, NOINVERT
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_MISSILE             BITMAP  DISCARDABLE     "bmp00001.bmp"
+IDB_ALIENO2             BITMAP  DISCARDABLE     "bmp00002.bmp"
+IDB_ALIENO1             BITMAP  DISCARDABLE     "bmp00003.bmp"
+IDB_ALIENO3             BITMAP  DISCARDABLE     "bmp00004.bmp"
+IDB_BOMBA               BITMAP  DISCARDABLE     "bmp00007.bmp"
+IDB_SPACESHIP           BITMAP  DISCARDABLE     "bmp00008.bmp"
+IDB_MISSILE2            BITMAP  DISCARDABLE     "bmp00010.bmp"
+IDB_COPYRIGHT           BITMAP  DISCARDABLE     "bmp00011.bmp"
+IDB_ALIENOBOOM          BITMAP  DISCARDABLE     "alienobo.bmp"
+IDB_SPACESHIPBOOM       BITMAP  DISCARDABLE     "bmp00012.bmp"
+IDB_BOMBA2              BITMAP  DISCARDABLE     "bomba2.bmp"
+IDB_LUNARRESCUE         BITMAP  DISCARDABLE     "bitmap1.bmp"
+IDB_BOMBA1              BITMAP  DISCARDABLE     "bomba1.bmp"
+IDB_BOMBA12             BITMAP  DISCARDABLE     "bomba12.bmp"
+IDB_OMINO1              BITMAP  DISCARDABLE     "bmp00013.bmp"
+IDB_BACKGROUND          BITMAP  DISCARDABLE     "bmp00014.bmp"
+IDB_ASTEROID1           BITMAP  DISCARDABLE     "asteroid.bmp"
+IDB_ASTEROID2           BITMAP  DISCARDABLE     "bmp00015.bmp"
+IDB_LITTLESTAR          BITMAP  DISCARDABLE     "bmp00016.bmp"
+IDB_SPACESHIP2          BITMAP  DISCARDABLE     "bmp00017.bmp"
+IDB_RAZZO1              BITMAP  DISCARDABLE     "bmp00018.bmp"
+IDB_RAZZO2              BITMAP  DISCARDABLE     "razzo2.bmp"
+IDB_OMINO3              BITMAP  DISCARDABLE     "bmp00019.bmp"
+IDB_MOTHERSHIP1         BITMAP  DISCARDABLE     "bmp00021.bmp"
+IDB_MOTHERSHIP2         BITMAP  DISCARDABLE     "mothersh.bmp"
+IDB_BASE1               BITMAP  DISCARDABLE     "base1.bmp"
+IDB_BASE2               BITMAP  DISCARDABLE     "base2.bmp"
+IDB_BASE3               BITMAP  DISCARDABLE     "base3.bmp"
+IDB_METEOR8             BITMAP  DISCARDABLE     "bmp00005.bmp"
+IDB_METEOR5             BITMAP  DISCARDABLE     "meteor2.bmp"
+IDB_METEOR4             BITMAP  DISCARDABLE     "meteor3.bmp"
+IDB_METEOR3             BITMAP  DISCARDABLE     "meteor4.bmp"
+IDB_METEOR2             BITMAP  DISCARDABLE     "meteor5.bmp"
+IDB_METEOR1             BITMAP  DISCARDABLE     "meteor6.bmp"
+IDB_METEOR9             BITMAP  DISCARDABLE     "meteor7.bmp"
+IDB_METEOR6             BITMAP  DISCARDABLE     "meteor8.bmp"
+IDB_METEOR7             BITMAP  DISCARDABLE     "meteor9.bmp"
+IDB_JINGLE1             BITMAP  DISCARDABLE     "jingle11.bmp"
+IDB_JINGLE2             BITMAP  DISCARDABLE     "jingle2.bmp"
+IDB_JINGLE3             BITMAP  DISCARDABLE     "jingle3.bmp"
+IDB_JINGLE4             BITMAP  DISCARDABLE     "jingle4.bmp"
+IDB_JINGLE5             BITMAP  DISCARDABLE     "jingle5.bmp"
+IDB_JINGLE6             BITMAP  DISCARDABLE     "jingle6.bmp"
+IDB_JINGLE7             BITMAP  DISCARDABLE     "jingle7.bmp"
+IDB_JINGLE8             BITMAP  DISCARDABLE     "jingle8.bmp"
+IDB_JINGLE9             BITMAP  DISCARDABLE     "jingle9.bmp"
+IDB_JINGLE10            BITMAP  DISCARDABLE     "jingle10.bmp"
+IDB_JINGLE11            BITMAP  DISCARDABLE     "bmp00006.bmp"
+IDB_JINGLE12            BITMAP  DISCARDABLE     "jingle12.bmp"
+IDB_SPACESHIPBOOM1      BITMAP  DISCARDABLE     "spaceshi.bmp"
+IDB_SPACESHIPBOOM2      BITMAP  DISCARDABLE     "bmp00009.bmp"
+IDB_ALIENOBOOM1         BITMAP  DISCARDABLE     "bmp00020.bmp"
+IDB_LITTLESTAR1         BITMAP  DISCARDABLE     "littlest.bmp"
+IDB_OMINO2              BITMAP  DISCARDABLE     "omino4.bmp"
+IDB_MOSTRO1R            BITMAP  DISCARDABLE     "alieno12.bmp"
+IDB_MOSTRO2R            BITMAP  DISCARDABLE     "alieno4.bmp"
+IDB_MOSTRO1             BITMAP  DISCARDABLE     "mostro3.bmp"
+IDB_MOSTRO2             BITMAP  DISCARDABLE     "mostro2.bmp"
+IDB_MOTHERSHIP3         BITMAP  DISCARDABLE     "bmp00022.bmp"
+IDB_JINGLE              BITMAP  DISCARDABLE     "jingle13.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_ABOUT, DIALOG
+    BEGIN
+        LEFTMARGIN, 3
+        RIGHTMARGIN, 240
+        TOPMARGIN, 1
+        BOTTOMMARGIN, 108
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// WAVE
+//
+
+IDR_WAVE_RESCUEOK       WAVE    DISCARDABLE     "rescueok.WAV"
+IDR_WAVE_MISSILE        WAVE    DISCARDABLE     "MISSILE.WAV"
+IDR_WAVE_UFOEXPLODE     WAVE    DISCARDABLE     "UFOEXPL.WAV"
+IDR_WAVE_SHIPDESTROYED  WAVE    DISCARDABLE     "SSEXPLOD.WAV"
+IDR_WAVE_METEOR         WAVE    DISCARDABLE     "ASTEROID.WAV"
+IDR_WAVE_SHIPFALLING    WAVE    DISCARDABLE     "SHIPFALL.WAV"
+IDR_WAVE_MANBOARDING    WAVE    DISCARDABLE     "MANBOARD.WAV"
+IDR_WAVE_THRUST         WAVE    DISCARDABLE     "THRUST.WAV"
+IDR_WAVE_JINGLE         WAVE    DISCARDABLE     "JINGLE.WAV"
+IDR_WAVE_BEEP           WAVE    DISCARDABLE     "wave_shi.wav"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_OPENSTRING1         "LUNAR RESCUE"
+END
+
+#endif    // Italian (Italy) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

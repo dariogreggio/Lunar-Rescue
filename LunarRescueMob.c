@@ -7,17 +7,18 @@ extern struct MOB myAsteroidi[MAX_ASTEROIDI+1];			// 20 + esplosione :D ridi su 
 extern struct MOB myOmini[7];			// 6 + 1 per mostrare in alto a dx i rescued
 extern struct MOB myMob[20];			// astronave, missile, spaceship, 10 bombe aliene
 extern struct MOB myStars[3];
+extern struct MOB myMeteorite;
 extern int AppXSize,AppYSize,AppXSizeR,AppYSizeR;
 extern BYTE doubleSize,bSuoni;
-extern int totShips[2];
-extern int score[2];
-extern BYTE missileCnt;
+extern BYTE totShips[2];
+extern WORD score[2];
 extern BYTE maxBombeNow;
+extern BYTE player;
 extern DWORD subPlayModeTime;
 extern DWORD subPlayData;
 extern WORD spaceshipScore[];
-extern BYTE ominiRescued,ominiLost;
-extern BYTE currQuadro;
+extern BYTE ominiRescued[2],ominiLost[2];
+extern BYTE currQuadro[2];
 extern HDC hCompDC;
 extern HBRUSH hBrush,hBrush2;
 extern HFONT hFont2,hFont3;
@@ -36,6 +37,8 @@ int MobCreate(struct MOB *mp,int img1,int img2,WORD cx,WORD cy,BYTE bSaveImage) 
 	mp->s.cx=cx; mp->s.cy=cy;
 	mp->mirrorX=mp->mirrorY=0;
 	SetBitmapDimensionEx(mp->hImg,mp->s.cx,mp->s.cy,NULL);		// 
+	if(mp->hImgAlt)
+		SetBitmapDimensionEx(mp->hImgAlt,mp->s.cx,mp->s.cy,NULL);
 	mp->hImgOld=NULL;
 	mp->magnify=1;
 	mp->bSaveImage=bSaveImage;
@@ -59,47 +62,95 @@ int MobErase(HDC hDC,struct MOB *mp) {
 		}
 	}
 
-int MobDraw(HDC hDC,struct MOB *mp) {
+int MobSaveImage(HDC hDC,struct MOB *mp) {		// la farei private
 	HANDLE hMyImg;
 
-	if(mp->bSaveImage) {
-		if(!mp->hImgOld)
-			mp->hImgOld=CreateCompatibleBitmap(hDC,mp->s.cx*mp->magnify /**doubleSize*/,mp->s.cy*mp->magnify /**doubleSize*/);
-		hMyImg=SelectObject(hCompDC,mp->hImgOld);
-		BitBlt(hCompDC,0,0,mp->s.cx*mp->magnify,mp->s.cy*mp->magnify,hDC,mp->x.whole,mp->y.whole,SRCCOPY);
-		SelectObject(hCompDC,hMyImg);
-		}
+	if(!mp->hImgOld)
+		mp->hImgOld=CreateCompatibleBitmap(hDC,mp->s.cx*mp->magnify /**doubleSize*/,mp->s.cy*mp->magnify /**doubleSize*/);
+	hMyImg=SelectObject(hCompDC,mp->hImgOld);
+	BitBlt(hCompDC,0,0,mp->s.cx*mp->magnify,mp->s.cy*mp->magnify,hDC,mp->x.whole,mp->y.whole,SRCCOPY);
+	SelectObject(hCompDC,hMyImg);
+	}
 
-//	SelectObject(hCompDC,mp->hImg); non è sempre così...
+int MobDraw(HDC hDC,struct MOB *mp) {
+
+	if(mp->bSaveImage)
+		MobSaveImage(hDC,mp);
+
+	SelectObject(hCompDC,mp->hImg); 
 	return StretchBlt(hDC,mp->x.whole,mp->y.whole,mp->s.cx*doubleSize*mp->magnify,mp->s.cy*doubleSize*mp->magnify,
 		hCompDC,mp->mirrorX ? mp->s.cx-1 : 0,mp->mirrorY ? mp->s.cy-1 : 0,mp->mirrorX ? -mp->s.cx : mp->s.cx,mp->mirrorY ? -mp->s.cy : mp->s.cy,mp->bTransparent ? SRCPAINT : SRCCOPY);
 	}
 
 int MobDrawXY(HDC hDC,struct MOB *mp,WORD x,WORD y) {
 
-	if(mp->bSaveImage) {
-		if(!mp->hImgOld)
-			mp->hImgOld=CreateCompatibleBitmap(hDC,mp->s.cx*doubleSize*mp->magnify,mp->s.cy*doubleSize*mp->magnify);
-		SelectObject(hCompDC,mp->hImgOld);
-		BitBlt(hCompDC,0,0,mp->s.cx*mp->magnify,mp->s.cy*mp->magnify,hDC,mp->x.whole,mp->y.whole,SRCCOPY);
-		}
+	if(mp->bSaveImage)
+		MobSaveImage(hDC,mp);
 
-	SelectObject(hCompDC,mp->hImg);
+	SelectObject(hCompDC,mp->hImg); 
+	return StretchBlt(hDC,x,y,mp->s.cx*doubleSize*mp->magnify,mp->s.cy*doubleSize*mp->magnify,
+		hCompDC,mp->mirrorX ? mp->s.cx-1 : 0,mp->mirrorY ? mp->s.cy-1 : 0,mp->mirrorX ? -mp->s.cx : mp->s.cx,mp->mirrorY ? -mp->s.cy : mp->s.cy,mp->bTransparent ? SRCPAINT : SRCCOPY);
+	}
+
+int MobDrawImage(HDC hDC,struct MOB *mp,HANDLE img) {
+
+	if(mp->bSaveImage)
+		MobSaveImage(hDC,mp);
+
+	SelectObject(hCompDC,img);
+	return StretchBlt(hDC,mp->x.whole,mp->y.whole,mp->s.cx*doubleSize*mp->magnify,mp->s.cy*doubleSize*mp->magnify,
+		hCompDC,mp->mirrorX ? mp->s.cx-1 : 0,mp->mirrorY ? mp->s.cy-1 : 0,mp->mirrorX ? -mp->s.cx : mp->s.cx,mp->mirrorY ? -mp->s.cy : mp->s.cy,mp->bTransparent ? SRCPAINT : SRCCOPY);
+	}
+
+int MobDrawImageXY(HDC hDC,struct MOB *mp,HANDLE img,WORD x,WORD y) {
+
+	if(mp->bSaveImage)
+		MobSaveImage(hDC,mp);
+
+	SelectObject(hCompDC,img);
 	return StretchBlt(hDC,x,y,mp->s.cx*doubleSize*mp->magnify,mp->s.cy*doubleSize*mp->magnify,
 		hCompDC,mp->mirrorX ? mp->s.cx-1 : 0,mp->mirrorY ? mp->s.cy-1 : 0,mp->mirrorX ? -mp->s.cx : mp->s.cx,mp->mirrorY ? -mp->s.cy : mp->s.cy,mp->bTransparent ? SRCPAINT : SRCCOPY);
 	}
 
 int MobMove(HDC hDC,struct MOB *mp,SIZE s) {
 
-	MobErase(hDC,mp);
-	// qua NON uso fract... (2022)
-	mp->x.whole += s.cx;
-	mp->y.whole += s.cy;
-	return MobDraw(hDC,mp);
+	if(mp->bVis) {
+		MobErase(hDC,mp);
+		// qua NON uso fract... (2022)
+		mp->x.whole += s.cx;
+		mp->y.whole += s.cy;
+		return MobDraw(hDC,mp);
+		}
+	return 0;
+	}
+
+int MobMoveXY(HDC hDC,struct MOB *mp,SIZE s,WORD x,WORD y) {
+
+	if(mp->bVis) {
+		MobErase(hDC,mp);
+		// qua NON uso fract... (2022)
+		mp->x.whole = x;
+		mp->y.whole = y;
+		return MobDraw(hDC,mp);
+		}
+	return 0;
+	}
+
+int MobCollision(struct MOB *mp1,struct MOB *mp2) {
+	RECT rc;
+// forse dovrebbe controllare anche i singoli pixel...
+	rc.left=mp2->x.whole;
+	rc.right=rc.left+mp2->s.cx*mp2->magnify;
+	rc.top=mp2->y.whole;
+	rc.bottom=rc.top+mp2->s.cy*mp2->magnify;
+	if(MobCollisionRect(mp1,&rc))
+		return 1;
+	return 0;
 	}
 
 int MobCollisionRect(struct MOB *mp,RECT *rc) {
 	RECT rc2;
+
 	rc2.left=mp->x.whole;
 	rc2.right=rc2.left+mp->s.cx*mp->magnify;
 	rc2.top=mp->y.whole;
@@ -139,8 +190,8 @@ BYTE MobCollisionColor(struct MOB *mp,DWORD color,BYTE mode) {
 	p=&buf;
 	if(mode) {			// cerco il colore dato
 //		i=GetObject(mp->hImgOld,sizeof(buf),buf);		// solo proprietà bitmap...
-		for(y=0; y<mp->y.whole; y++) {
-			for(x=0; x<mp->x.whole; x++) {
+		for(y=0; y<mp->s.cy; y++) {
+			for(x=0; x<mp->s.cx; x++) {
 				c=*p++;
 				if(c == color)
 					return 1;
@@ -148,8 +199,8 @@ BYTE MobCollisionColor(struct MOB *mp,DWORD color,BYTE mode) {
 			}
 		}
 	else {			// cerco qualsiasi colore diverso da quello dato
-		for(y=0; y<mp->y.whole; y++) {
-			for(x=0; x<mp->x.whole; x++) {
+		for(y=0; y<mp->s.cy; y++) {
+			for(x=0; x<mp->s.cx; x++) {
 				c=*p++;
 				if(c != color)
 					return 1;
@@ -280,13 +331,14 @@ mothershipwaiting:
 			for(i=0; i<MAX_ASTEROIDI; i++) {
 				j=rand() & 1;
 				MobCreate(&myAsteroidi[i],j ? IDB_ASTEROID2 : IDB_ASTEROID1,j ? IDB_ASTEROID2 : IDB_ASTEROID1,/*ASTEROID_X_SIZE*/12*doubleSize,ASTEROID_Y_SIZE*doubleSize,1);
-				myAsteroidi[i].x.whole=10*doubleSize+(rand() % (AppXSize-20))*doubleSize;
+				myAsteroidi[i].x.whole=10*doubleSize+(rand() % (AppXSizeR-20*doubleSize));
 				myAsteroidi[i].y.whole=(ALIEN_ASTEROID_AREA+(rand() % MAX_ASTEROIDI)*((ASTEROID_Y_SIZE*4)/5))*doubleSize;
 				// (in effetti ce ne possono essere 2+ sulla stessa riga...)
 				MobSetColor(&myAsteroidi[i],1,colorPalette[rand() & 15],0);
 				myAsteroidi[i].punti=0;
-				myAsteroidi[i].speed.x=rand() & 1 ? (currQuadro/2+1)*doubleSize : -(currQuadro/2+1)*doubleSize; myAsteroidi[i].speed.y=0;
-				myAsteroidi[i].bVis=((rand() % (MAX_QUADRI/2)) <= currQuadro);
+				myAsteroidi[i].speed.x=rand() & 1 ? (currQuadro[player]/2+1)*doubleSize : -(currQuadro[player]/2+1)*doubleSize; myAsteroidi[i].speed.y=0;
+				myAsteroidi[i].bVis=((rand() % (MAX_QUADRI/2)) <= currQuadro[player]);
+				myAsteroidi[i].mirrorX=rand() & 1;
 				// e in effetti pare ci siano sempre "tutti"
 				}
 			MobCreate(&myAsteroidi[MAX_ASTEROIDI],IDB_ALIENOBOOM,IDB_ALIENOBOOM1,ASTEROID_X_SIZE*doubleSize,ASTEROID_Y_SIZE*doubleSize,FALSE); // mah cambiare, o non serve?
@@ -326,11 +378,11 @@ spaceshipfalling:
 				MobCreate(&myAlieni[i],j ? (j==2 ? IDB_ALIENO3 : IDB_ALIENO2) : IDB_ALIENO1,j ? (j==2 ? IDB_ALIENO3 : IDB_ALIENO2) : IDB_ALIENO1,
 					/*ALIEN_X_SIZE*/ (j ? (j==2 ? 21 : 16) : 14)*doubleSize,
 					ALIEN_Y_SIZE*doubleSize,TRUE);
-				myAlieni[i].x.whole=10*doubleSize+(rand() % (AppXSize-20))*doubleSize;
+				myAlieni[i].x.whole=10*doubleSize+(rand() % (AppXSizeR-20*doubleSize));
 				myAlieni[i].y.whole=(ALIEN_ASTEROID_AREA+i*(ALIEN_Y_SIZE))*doubleSize;
 				MobSetColor(&myAlieni[i],1,colorPalette[rand() & 15],0);
 				myAlieni[i].punti=j ? 30 : 50;
-				myAlieni[i].speed.x=rand() & 1 ? (currQuadro/2+2)*doubleSize : -(currQuadro/2+2)*doubleSize; myAlieni[i].speed.y=0;
+				myAlieni[i].speed.x=rand() & 1 ? (currQuadro[player]/2+2)*doubleSize : -(currQuadro[player]/2+2)*doubleSize; myAlieni[i].speed.y=0;
 				myAlieni[i].bVis=1;
 				}
 			MobCreate(&myAlieni[MAX_ALIENI],IDB_ALIENOBOOM,IDB_ALIENOBOOM1,24 /*ALIEN_X_SIZE*/ *doubleSize,11 /*ALIEN_Y_SIZE*/ *doubleSize,FALSE);
@@ -339,6 +391,8 @@ spaceshipfalling:
 			myAlieni[MAX_ALIENI].punti=0;
 			myAlieni[MAX_ALIENI].speed.x=0; myAlieni[MAX_ALIENI].speed.y=0;
 			myAlieni[MAX_ALIENI].bVis=0;
+
+			MobCreate(&myMeteorite,IDB_METEOR1,IDB_METEOR2,23*doubleSize,19*doubleSize,TRUE);
 			break;
 		case PLAY_SPACESHIPDOCKING:
 			break;
@@ -392,9 +446,8 @@ int animateMobs(HWND hWnd,enum PLAY_STATE playState) {
 				dividerStar=0;
 
 				if(rand() >10000) {
-					SelectObject(hCompDC,rand() & 1 ? mp->hImgAlt : mp->hImg);
 					// potrebbero anche sparire del tutto a tratti
-					MobDraw(hDC,mp);
+					MobDrawImage(hDC,mp,rand() & 1 ? mp->hImgAlt : mp->hImg);
 					}
 				}
 			}
@@ -417,14 +470,12 @@ int animateMobs(HWND hWnd,enum PLAY_STATE playState) {
 					mp->speed.x=-mp->speed.x;
 					}
 				}
-			SelectObject(hCompDC,mp->hImg);
 			MobDraw(hDC,mp);
 			}
 		if(playState==PLAY_MOTHERSHIPWAITING) {
 			MobErase(hDC,&myMob[0]);
 			myMob[0].x.whole=mp->x.whole+((myMob[2].s.cx-myMob[0].s.cx)/2);
 			myMob[0].y.whole=mp->y.whole+(5)*doubleSize;
-			SelectObject(hCompDC,myMob[0].hImg);
 			MobDraw(hDC,&myMob[0]);
 			}
 		}
@@ -432,19 +483,18 @@ int animateMobs(HWND hWnd,enum PLAY_STATE playState) {
 	mp=&myMob[0];				// astronave
 	if(mp->bVis) {
 		if(mp->speed.x>0) {
-			if(mp->x.whole > (AppXSizeR-mp->s.cx-4*doubleSize)) {
+			if(mp->x.whole > (AppXSizeR-mp->s.cx-2*doubleSize)) {
 				mp->speed.x=0;
 				}
 			}
 		else {
-			if(mp->x.whole < (5*doubleSize)) {
+			if(mp->x.whole < (2*doubleSize)) {
 				mp->speed.x=0;
 				}
 			}
 		if(mp->speed.x) {
 			MobErase(hDC,mp);
 			mp->x.whole += mp->speed.x;
-			SelectObject(hCompDC,mp->hImg);
 			MobDraw(hDC,mp);
 			}
 /*		if(mp->speed.y>0) {
@@ -464,13 +514,11 @@ int animateMobs(HWND hWnd,enum PLAY_STATE playState) {
 				myMob[1].x.whole=mp->x.whole+((myMob[0].s.cx-myMob[1].s.cx)/2);
 				myMob[1].y.whole=mp->y.whole+myMob[0].s.cy;
 				if(myMob[0].speed.y>0)			// se scende
-					SelectObject(hCompDC,myMob[0].speed.y<2*doubleSize ? myMob[1].hImg : myMob[1].hImg);		// in effetti gestito con bVis..
+					MobDrawImage(hDC,&myMob[1],myMob[0].speed.y<2*doubleSize ? myMob[1].hImg : myMob[1].hImg);		// in effetti gestito con bVis..
 				else		// se sale
-					SelectObject(hCompDC,(myMob[0].speed.x != 0 || myMob[0].speed.y<-2*doubleSize) ? myMob[1].hImgAlt : myMob[1].hImg);
-				MobDraw(hDC,&myMob[1]);
+					MobDrawImage(hDC,&myMob[1],(myMob[0].speed.x != 0 || myMob[0].speed.y<-2*doubleSize) ? myMob[1].hImgAlt : myMob[1].hImg);
 				}
 			mp->y.whole += mp->speed.y;
-			SelectObject(hCompDC,mp->hImg);
 			MobDraw(hDC,mp);
 			}
 		}
@@ -491,7 +539,7 @@ int animateMobs(HWND hWnd,enum PLAY_STATE playState) {
 					if(myMob[i].bVis) {
 						if(isMissileInArea(&myMob[i])) {
 							mp->bVis=0;
-							if((rand() % 20) > currQuadro) {		// in certi casi non scoppia :D
+							if((rand() % 20) > currQuadro[player]) {		// in certi casi non scoppia :D
 								myMob[i].bVis=0;
 								MobErase(hDC,&myMob[i]);
 	//							subPlayMode=SUBPLAY_BOMBABOOM; // in teoria ci sarebbe l'esplosioncina pure della bomba...
@@ -509,9 +557,11 @@ int animateMobs(HWND hWnd,enum PLAY_STATE playState) {
 							RECT scoreRect={ 0,0,AppXSize,SCORE_AREA*doubleSize };
 							mp->bVis=myAlieni[i].bVis=0;
 							MobErase(hDC,&myAlieni[i]);
+							if(myAlieni[10].bVis) {		// se doppia esplosione di seguito!
+								MobErase(hDC,&myAlieni[10]);
+								}
 							myAlieni[10].x.whole=myAlieni[i].x.whole;  myAlieni[10].y.whole=myAlieni[i].y.whole-1*doubleSize;
-							SelectObject(hCompDC,rand() & 1 ? myAlieni[10].hImg : myAlieni[10].hImgAlt);
-							MobDraw(hDC,&myAlieni[10]);
+							MobDrawImage(hDC,&myAlieni[10],rand() & 1 ? myAlieni[10].hImg : myAlieni[10].hImgAlt);
 //					j=StretchBlt(hDC,myAlieni[10].x.whole,myAlieni[10].y.whole,myAlieni[10].s.cx*doubleSize,myAlieni[10].s.cy*doubleSize,hCompDC,0,0,
 //						myAlieni[10].s.cx,myAlieni[10].s.cy,SRCCOPY);
 							subPlayMode=SUBPLAY_ALIENBOOM;
@@ -554,8 +604,8 @@ int animateMobs(HWND hWnd,enum PLAY_STATE playState) {
 
 // unire con di là... spaceshipcrashed2
 				// if(RISING) sottinteso
-				ominiRescued++;
-				ominiLost++;
+				ominiRescued[player]++;
+				ominiLost[player]++;
 
 				InvalidateRect(hWnd,&shipAreaRect,TRUE);
 				}
@@ -608,6 +658,55 @@ int animateMobs(HWND hWnd,enum PLAY_STATE playState) {
 			}
 		}
 
+	mp=&myMeteorite;
+	if(mp->bVis) {
+		MobErase(hDC,mp);
+		mp->x.whole += mp->speed.x;
+		mp->y.whole += mp->speed.y;
+		if(mp->y.whole > ALIEN_ASTEROID_AREA+(20+(rand() & 8))*9*doubleSize) {
+			mp->bVis=0;
+			}
+		else if(mp->y.whole > ALIEN_ASTEROID_AREA+20*8*doubleSize) {
+			// DEVE cambiare dimensioni sprite! per collisione... fare in SetImage o?
+			MobSetImage(mp,IDB_METEOR9,0);
+			mp->s.cx=mp->s.cy=20;
+			}
+		else if(mp->y.whole > ALIEN_ASTEROID_AREA+20*7*doubleSize) {
+			MobSetImage(mp,IDB_METEOR8,0);
+			mp->s.cx=mp->s.cy=18;
+			}
+		else if(mp->y.whole > ALIEN_ASTEROID_AREA+20*6*doubleSize) {
+			MobSetImage(mp,IDB_METEOR7,0);
+			mp->s.cx=mp->s.cy=16;
+			}
+		else if(mp->y.whole > ALIEN_ASTEROID_AREA+20*5*doubleSize) {
+			MobSetImage(mp,IDB_METEOR6,0);
+			mp->s.cx=mp->s.cy=14;
+			}
+		else if(mp->y.whole > ALIEN_ASTEROID_AREA+20*4*doubleSize) {
+			MobSetImage(mp,IDB_METEOR5,0);
+			mp->s.cx=mp->s.cy=12;
+			}
+		else if(mp->y.whole > ALIEN_ASTEROID_AREA+20*3*doubleSize) {
+			MobSetImage(mp,IDB_METEOR4,0);
+			mp->s.cx=mp->s.cy=10;
+			}
+		else if(mp->y.whole > ALIEN_ASTEROID_AREA+20*2*doubleSize) {
+			MobSetImage(mp,IDB_METEOR3,0);
+			mp->s.cx=mp->s.cy=8;
+			}
+		else if(mp->y.whole > ALIEN_ASTEROID_AREA+20*doubleSize) {
+			MobSetImage(mp,IDB_METEOR2,0);
+			mp->s.cx=mp->s.cy=6;
+			}
+		else if(mp->y.whole > ALIEN_ASTEROID_AREA) {
+			MobSetImage(mp,IDB_METEOR1,0);
+			mp->s.cx=mp->s.cy=4;
+			}
+		if(mp->bVis)
+			MobDraw(hDC,mp);
+		}
+
 	ReleaseDC(hWnd,hDC);
 
 	return 1;
@@ -644,19 +743,11 @@ int animateAlieni(HWND hWnd) {
 					mp->x.whole = (AppXSizeR-mp->s.cx-4*doubleSize);
 					}
 				}
-			SelectObject(hCompDC,mp->hImg);
 			MobDraw(hDC,mp);
 
-			{
-			RECT rc;
-			rc.left=mp->x.whole;
-			rc.right=rc.left+mp->s.cx;
-			rc.top=mp->y.whole;
-			rc.bottom=rc.top+mp->s.cy;
-			if(MobCollisionRect(&myMob[0],&rc)) {
+			if(MobCollision(&myMob[0],mp)) {
 				j=1;
 				}
-			}
 			}
 		}
 
@@ -689,19 +780,11 @@ int animateAsteroidi(HWND hWnd) {
 					mp->x.whole = (AppXSizeR-mp->s.cx-4*doubleSize);
 					}
 				}
-			SelectObject(hCompDC,mp->hImg);
 			MobDraw(hDC,mp);
 
-			{
-			RECT rc;
-			rc.left=mp->x.whole;
-			rc.right=rc.left+mp->s.cx;
-			rc.top=mp->y.whole;
-			rc.bottom=rc.top+mp->s.cy;
-			if(MobCollisionRect(&myMob[0],&rc)) {
+			if(MobCollision(&myMob[0],mp)) {
 				j=1;
 				}
-			}
 			}
 		}
 
@@ -762,8 +845,7 @@ int animateOmini(HWND hWnd,BYTE w) {
 		mp=&myOmini[i];
 		MobErase(hDC,mp);
 		if(mp->bVis) {
-			SelectObject(hCompDC,dividerOmini & 1 ? mp->hImgAlt : mp->hImg);
-			MobDraw(hDC,mp);
+			MobDrawImage(hDC,mp,dividerOmini & 1 ? mp->hImgAlt : mp->hImg);
 			if(!myOmini[w].speed.x && !myOmini[w].speed.y) {		// se siamo in attesa, lampeggio gli HELP se no no!
 				if((rand() % 10) < 4) {
 					hOldFont=SelectObject(hDC,hFont3);

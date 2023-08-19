@@ -49,7 +49,7 @@ struct MOB {
 #define LOWER_AREA 14
 #define BASI_AREA (AppYSizeR-57*doubleSize)
 #define BOTTOM_AREA 37
-#define MAX_SHIPS 5
+#define MAX_SHIPS 3
 #define MAX_BOMBE 5			// diciamo max 5
 #define MAX_QUADRI 10  //boh
 #define MAX_ASTEROIDI 20 
@@ -71,6 +71,7 @@ enum PLAY_STATE {
 	};
 enum SUB_PLAY_STATE {
 	SUBPLAY_NONE=0,
+	SUBPLAY_INIT,
 	SUBPLAY_ALIENBOOM,
 	SUBPLAY_SPACESHIPTOFALL,
 	SUBPLAY_SPACESHIPBOOM,
@@ -99,10 +100,15 @@ int MobCreate(struct MOB *mp,int img1,int img2,WORD cx,WORD cy,BYTE bSaveImage);
 int MobSetImage(struct MOB *mp,int img1,int img2);
 int MobErase(HDC,struct MOB *);
 int MobDraw(HDC,struct MOB *);
-int MobMove(HDC,struct MOB *,SIZE) ;
 int MobDrawXY(HDC,struct MOB *,WORD,WORD);
+int MobDrawImage(HDC,struct MOB *,HANDLE);
+int MobDrawImageXY(HDC,struct MOB *,HANDLE,WORD,WORD);
+int MobMove(HDC,struct MOB *,SIZE);
+int MobMoveXY(HDC,struct MOB *,SIZE,WORD,WORD);
+int MobCollision(struct MOB *,struct MOB *);
 int MobCollisionRect(struct MOB *,RECT *);
 int MobCollisionPoint(struct MOB *,POINT);
+BYTE MobCollisionColor(struct MOB *,DWORD,BYTE);
 int MobSetColor(struct MOB *,BYTE w,COLORREF forecolor,COLORREF backcolor);
 COLORREF MobGetColor(struct MOB *mp,DWORD where);
 
